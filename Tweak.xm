@@ -12,6 +12,12 @@ CHOptimizedMethod(1, self, id, MPIncomingPhoneCallController, initWithCall, id, 
     return orig;
 }
 
+CHOptimizedMethod(0, self, void, MPIncomingPhoneCallController, stopRingingOrVibrating) {
+    [[PocketMode sharedManager] stopRinging];
+
+    CHSuper(0, MPIncomingPhoneCallController, stopRingingOrVibrating);
+}
+
 CHDeclareClass(SBPluginManager);
 
 CHOptimizedMethod(1, self, Class, SBPluginManager, loadPluginBundle, NSBundle *, bundle) {
@@ -22,6 +28,7 @@ CHOptimizedMethod(1, self, Class, SBPluginManager, loadPluginBundle, NSBundle *,
     if ([[bundle bundleIdentifier] isEqualToString:@"com.apple.mobilephone.incomingcall"] && [bundle isLoaded]) {
         CHLoadLateClass(MPIncomingPhoneCallController);
         CHHook(1, MPIncomingPhoneCallController, initWithCall);
+        CHHook(0, MPIncomingPhoneCallController, stopRingingOrVibrating);
     }
 
     return orig;

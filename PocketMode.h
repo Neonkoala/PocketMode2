@@ -15,5 +15,6 @@
 - (void)updateLux:(NSInteger)lux;
 
 - (void)incomingPhoneCall:(id)call;
+- (void)stopRinging;
 
 @end

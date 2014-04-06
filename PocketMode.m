@@ -8,7 +8,7 @@
 
 #import "PocketMode.h"
 
-#import <Celestial/AVSystemController.h>
+#import <Celestial/Celestial.h>
 #import <IOKit/hid/IOHIDEventSystemClient.h>
 
 #if defined __cplusplus
@@ -39,9 +39,19 @@ void handleALSEvent(void* target, void* refcon, IOHIDEventQueueRef queue, IOHIDE
 
 @interface PocketMode()
 
+// State
+
 @property (nonatomic, assign) BOOL alsConfigured;
+@property (nonatomic, assign) BOOL overrideInProgress;
+@property (nonatomic, assign) float regularVolume;
 @property (nonatomic, assign) NSInteger lux;
 @property (nonatomic, strong) NSDate *lastReadingDate;
+
+// Settings - General
+
+@property (nonatomic, assign) NSInteger luxThreshold;
+
+// Settings - Phone Calls
 
 @property (nonatomic, assign) BOOL phoneCallEnabled;
 @property (nonatomic, assign) BOOL phoneCallGradualVolume;
@@ -64,6 +74,7 @@ void handleALSEvent(void* target, void* refcon, IOHIDEventQueueRef queue, IOHIDE
     self = [super init];
     if(self) {
         _alsConfigured = NO;
+        _overrideInProgress = NO;
         
         [self loadPreferences];
         [self configureALS];
@@ -73,10 +84,16 @@ void handleALSEvent(void* target, void* refcon, IOHIDEventQueueRef queue, IOHIDE
 
 #pragma mark - Preferences
 
-- (void)loadPreferences
+- (void)loadPreferences {
+    self.luxThreshold = 10;
+    
     self.phoneCallEnabled = YES;
     self.phoneCallGradualVolume = NO;
     self.phoneCallMaxVolume = 1.0;
+    
+    float currentVolume;
+    [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
+    self.regularVolume = currentVolume;
 }
 
 #pragma mark - ALS
@@ -129,6 +146,18 @@ void handleALSEvent(void* target, void* refcon, IOHIDEventQueueRef queue, IOHIDE
 - (void)updateLux:(NSInteger)updatedLux {
     self.lux = updatedLux;
     self.lastReadingDate = [NSDate date];
+    
+    if(self.overrideInProgress) {
+        if(self.lux > self.luxThreshold) {
+            [self restoreRingerState];
+        }
+    }
+}
+
+- (void)restoreRingerState {
+    [[AVSystemController sharedAVSystemController] setVolumeTo:self.regularVolume forCategory:@"Ringtone"];
+    
+    self.overrideInProgress = NO;
 }
 
 #pragma mark - Ringer
@@ -138,10 +167,28 @@ void handleALSEvent(void* target, void* refcon, IOHIDEventQueueRef queue, IOHIDE
 #pragma mark - Handle Events
 
 - (void)incomingPhoneCall:(id)call {
-    if(self.alsConfigured) {
+    if(self.alsConfigured && !self.overrideInProgress) {
         NSLog(@"PocketMode: Incoming phone call... Current date: %@ ALS staleness: %@ Lux: %ld", [NSDate date], self.lastReadingDate, (long)self.lux);
     } else {
         NSLog(@"PocketMode: Incoming phone call... ALS not configured!");
+        return;
+    }
+    
+    float currentVolume;
+    [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
+    self.regularVolume = currentVolume;
+    
+    NSLog(@"Current volume: %f", currentVolume);
+    
+    if(self.lux <= self.luxThreshold) {
+        self.overrideInProgress = YES;
+        [[AVSystemController sharedAVSystemController] setVolumeTo:self.phoneCallMaxVolume forCategory:@"Ringtone"];
+    }
+}
+
+- (void)stopRinging {
+    if(self.overrideInProgress) {
+        [self restoreRingerState];
     }
 }
 
