@@ -10,6 +10,7 @@
 
 #import <Celestial/Celestial.h>
 #import <IOKit/hid/IOHIDEventSystemClient.h>
+#import <UIKit/UIApplication2.h>
 
 #if defined __cplusplus
 extern "C" {
@@ -31,17 +32,32 @@ void handleALSEvent(void* target, void* refcon, IOHIDEventQueueRef queue, IOHIDE
     if(IOHIDEventGetType(event) == kIOHIDEventTypeAmbientLightSensor) {
         NSInteger lux = IOHIDEventGetIntegerValue(event, (IOHIDEventField)kIOHIDEventFieldAmbientLightSensorLevel);
 		
-		NSLog(@"PocketMode: lux now %ld", (long)lux);
+		//NSLog(@"PocketMode: lux now %ld", (long)lux);
         
         [[PocketMode sharedManager] updateLux:lux];
     }
 }
+
+void preferenceNotificationCallback(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+    [[PocketMode sharedManager] updatePreferences];
+}
+
+NSString * const PMPreferencesPath = @"/var/mobile/Library/Preferences/be.dawson.pocketmodeprefs.plist";
+
+NSString * const PMPreferenceGlobalEnabled = @"GlobalEnabled";
+
+NSString * const PMPreferencePhoneCallEnabled = @"PhoneCallEnabled";
+NSString * const PMPreferencePhoneCallGradualVolume = @"PhoneCallGradual";
+NSString * const PMPreferencePhoneCallOverrideMute = @"PhoneCallOverrideMute";
+NSString * const PMPreferencePhoneCallVolume = @"PhoneCallVolume";
+NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabled";
 
 @interface PocketMode()
 
 // State
 
 @property (nonatomic, assign) BOOL alsConfigured;
+@property (nonatomic, assign) BOOL globalEnabled;
 @property (nonatomic, assign) BOOL overrideInProgress;
 @property (nonatomic, assign) float regularVolume;
 @property (nonatomic, assign) NSInteger lux;
@@ -55,6 +71,7 @@ void handleALSEvent(void* target, void* refcon, IOHIDEventQueueRef queue, IOHIDE
 
 @property (nonatomic, assign) BOOL phoneCallEnabled;
 @property (nonatomic, assign) BOOL phoneCallGradualVolume;
+@property (nonatomic, assign) BOOL phoneCallOverrideMute;
 @property (nonatomic, assign) float phoneCallMaxVolume;
 
 @end
@@ -85,15 +102,48 @@ void handleALSEvent(void* target, void* refcon, IOHIDEventQueueRef queue, IOHIDE
 #pragma mark - Preferences
 
 - (void)loadPreferences {
+    // Set defaults
+    self.globalEnabled = YES;
+    
     self.luxThreshold = 10;
     
     self.phoneCallEnabled = YES;
-    self.phoneCallGradualVolume = NO;
+    self.phoneCallGradualVolume = YES;
+    self.phoneCallOverrideMute = NO;
     self.phoneCallMaxVolume = 1.0;
     
     float currentVolume;
     [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
     self.regularVolume = currentVolume;
+    
+    [self updatePreferences];
+    
+    // Start listening for future changes
+    CFNotificationCenterRef center = CFNotificationCenterGetDarwinNotifyCenter();
+    if(center) {
+        CFNotificationCenterAddObserver(center, NULL, preferenceNotificationCallback, CFSTR("be.dawson.pocketmode.prefsChanged"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+    }
+}
+
+- (void)updatePreferences {
+    NSLog(@"PocketMode: Preferences changed!");
+    // Load defaults from PList
+    NSDictionary *preferences = [NSDictionary dictionaryWithContentsOfFile:PMPreferencesPath];
+    if([preferences objectForKey:PMPreferenceGlobalEnabled]) {
+        self.globalEnabled = [[preferences objectForKey:PMPreferenceGlobalEnabled] boolValue];
+    }
+    if([preferences objectForKey:PMPreferencePhoneCallEnabled]) {
+        self.phoneCallEnabled = [[preferences objectForKey:PMPreferencePhoneCallEnabled] boolValue];
+    }
+    if([preferences objectForKey:PMPreferencePhoneCallGradualVolume]) {
+        self.phoneCallGradualVolume = [[preferences objectForKey:PMPreferencePhoneCallGradualVolume] boolValue];
+    }
+    if([preferences objectForKey:PMPreferencePhoneCallOverrideMute]) {
+        self.phoneCallOverrideMute = [[preferences objectForKey:PMPreferencePhoneCallOverrideMute] boolValue];
+    }
+    if([preferences objectForKey:PMPreferencePhoneCallVolume]) {
+        self.phoneCallMaxVolume = [[preferences objectForKey:PMPreferencePhoneCallVolume] floatValue];
+    }
 }
 
 #pragma mark - ALS
@@ -155,14 +205,18 @@ void handleALSEvent(void* target, void* refcon, IOHIDEventQueueRef queue, IOHIDE
 }
 
 - (void)restoreRingerState {
-    [[AVSystemController sharedAVSystemController] setVolumeTo:self.regularVolume forCategory:@"Ringtone"];
+    [self setRingerVolume:self.regularVolume];
     
     self.overrideInProgress = NO;
 }
 
 #pragma mark - Ringer
 
-
+- (void)setRingerVolume:(float)volume {
+    [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:NO forAudioCategory:@"Ringtone"];
+    [[AVSystemController sharedAVSystemController] setVolumeTo:volume forCategory:@"Ringtone"];
+    [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:YES forAudioCategory:@"Ringtone"];
+}
 
 #pragma mark - Handle Events
 
@@ -182,7 +236,7 @@ void handleALSEvent(void* target, void* refcon, IOHIDEventQueueRef queue, IOHIDE
     
     if(self.lux <= self.luxThreshold) {
         self.overrideInProgress = YES;
-        [[AVSystemController sharedAVSystemController] setVolumeTo:self.phoneCallMaxVolume forCategory:@"Ringtone"];
+        [self setRingerVolume:self.phoneCallMaxVolume];
     }
 }
 

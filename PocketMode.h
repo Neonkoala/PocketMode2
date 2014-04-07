@@ -12,6 +12,8 @@
 
 + (id)sharedManager;
 
+- (void)updatePreferences;
+
 - (void)updateLux:(NSInteger)lux;
 
 - (void)incomingPhoneCall:(id)call;

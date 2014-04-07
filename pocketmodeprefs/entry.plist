@@ -1,0 +1,10 @@
+{
+	entry = {
+		bundle = PocketModePrefs;
+		cell = PSLinkCell;
+		detail = "PocketModePrefsListController";
+		icon = "PocketMode.png";
+		isController = 1;
+		label = PocketMode;
+	};
+}

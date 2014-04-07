@@ -1,6 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Workspace
    version = "1.0">
+   <Group
+      location = "container:"
+      name = "Preferences">
+      <FileRef
+         location = "group:pocketmodeprefs/PocketModePrefs.mm">
+      </FileRef>
+      <Group
+         location = "group:pocketmodeprefs/Resources"
+         name = "Resources">
+         <FileRef
+            location = "group:be.dawson.pocketmodeprefs.plist">
+         </FileRef>
+         <FileRef
+            location = "group:Info.plist">
+         </FileRef>
+         <FileRef
+            location = "group:PocketMode.png">
+         </FileRef>
+         <FileRef
+            location = "group:PocketMode@2x.png">
+         </FileRef>
+         <FileRef
+            location = "group:PocketModePrefs.plist">
+         </FileRef>
+      </Group>
+   </Group>
    <FileRef
       location = "group:PocketMode.h">
    </FileRef>
