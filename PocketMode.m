@@ -12,6 +12,10 @@
 #import <IOKit/hid/IOHIDEventSystemClient.h>
 #import <UIKit/UIApplication2.h>
 
+#import <SpringBoard/SpringBoard.h>
+#import <objc/runtime.h>
+
+
 #if defined __cplusplus
 extern "C" {
 #endif
@@ -44,6 +48,9 @@ void preferenceNotificationCallback(CFNotificationCenterRef center, void *observ
 
 NSString * const PMPreferencesPath = @"/var/mobile/Library/Preferences/be.dawson.pocketmodeprefs.plist";
 
+NSString * const PMUserInfoIncrementsRemainingKey = @"IncrementsRemainingKey";
+NSString * const PMUserInfoMaxVolumeKey = @"MaxVolumeKey";
+
 NSString * const PMPreferenceGlobalEnabled = @"GlobalEnabled";
 
 NSString * const PMPreferencePhoneCallEnabled = @"PhoneCallEnabled";
@@ -59,9 +66,11 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
 @property (nonatomic, assign) BOOL alsConfigured;
 @property (nonatomic, assign) BOOL globalEnabled;
 @property (nonatomic, assign) BOOL overrideInProgress;
+@property (nonatomic, assign) BOOL wasMuted;
 @property (nonatomic, assign) float regularVolume;
 @property (nonatomic, assign) NSInteger lux;
 @property (nonatomic, strong) NSDate *lastReadingDate;
+@property (nonatomic, strong) NSTimer *gradualVolumeTimer;
 
 // Settings - General
 
@@ -92,6 +101,7 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
     if(self) {
         _alsConfigured = NO;
         _overrideInProgress = NO;
+        _wasMuted = NO;
         
         [self loadPreferences];
         [self configureALS];
@@ -208,25 +218,76 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
     [self setRingerVolume:self.regularVolume];
     
     self.overrideInProgress = NO;
+    
+    if(self.wasMuted) {
+        SBMediaController *mediaController = [objc_getClass("SBMediaController") sharedInstance];
+        [mediaController setRingerMuted:YES];
+    }
+    
+    // Hack to hide HUD
+    [self performSelector:@selector(reenableRingerHUD) withObject:nil afterDelay:0.1];
 }
 
 #pragma mark - Ringer
 
+- (void)reenableRingerHUD {
+    if(!self.overrideInProgress) {
+        [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:YES forAudioCategory:@"Ringtone"];
+    }
+}
+
 - (void)setRingerVolume:(float)volume {
-    [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:NO forAudioCategory:@"Ringtone"];
     [[AVSystemController sharedAVSystemController] setVolumeTo:volume forCategory:@"Ringtone"];
-    [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:YES forAudioCategory:@"Ringtone"];
+}
+
+- (void)setRingerVolumeGradually:(float)volume {
+    NSInteger increments = (self.phoneCallMaxVolume - self.regularVolume) / 0.1;
+    
+    NSLog(@"PocketMode: increments start: %ld", (long)increments);
+    
+    self.gradualVolumeTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(incrementVolume:) userInfo:@{PMUserInfoMaxVolumeKey: @(volume), PMUserInfoIncrementsRemainingKey: @(increments)} repeats:NO];
+}
+
+- (void)stopRinging {
+    if(self.overrideInProgress) {
+        [self.gradualVolumeTimer invalidate];
+        [self restoreRingerState];
+    }
+}
+
+- (void)incrementVolume:(NSTimer *)timer {
+    float maxVolume = [timer.userInfo[PMUserInfoMaxVolumeKey] floatValue];
+    float remainingIncrements = [timer.userInfo[PMUserInfoIncrementsRemainingKey] floatValue] - 1;
+    
+    float currentVolume;
+    [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
+    
+    float targetVolume = currentVolume + 0.1;
+    if(targetVolume > maxVolume) {
+        targetVolume = maxVolume;
+        remainingIncrements = 0;
+    }
+    
+    [self setRingerVolume:targetVolume];
+    
+    if(remainingIncrements) {
+        self.gradualVolumeTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(incrementVolume:) userInfo:@{PMUserInfoMaxVolumeKey: @(maxVolume), PMUserInfoIncrementsRemainingKey: @(remainingIncrements)} repeats:NO];
+    } else {
+        self.gradualVolumeTimer = nil;
+    }
 }
 
 #pragma mark - Handle Events
 
 - (void)incomingPhoneCall:(id)call {
-    if(self.alsConfigured && !self.overrideInProgress) {
+    if(self.alsConfigured && !self.overrideInProgress && self.phoneCallEnabled) {
         NSLog(@"PocketMode: Incoming phone call... Current date: %@ ALS staleness: %@ Lux: %ld", [NSDate date], self.lastReadingDate, (long)self.lux);
     } else {
         NSLog(@"PocketMode: Incoming phone call... ALS not configured!");
         return;
     }
+    
+    [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:NO forAudioCategory:@"Ringtone"];
     
     float currentVolume;
     [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
@@ -234,15 +295,20 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
     
     NSLog(@"Current volume: %f", currentVolume);
     
-    if(self.lux <= self.luxThreshold) {
+    if(self.lux <= self.luxThreshold && self.phoneCallMaxVolume > currentVolume) {
         self.overrideInProgress = YES;
-        [self setRingerVolume:self.phoneCallMaxVolume];
-    }
-}
-
-- (void)stopRinging {
-    if(self.overrideInProgress) {
-        [self restoreRingerState];
+        
+        SBMediaController *mediaController = [objc_getClass("SBMediaController") sharedInstance];
+        self.wasMuted = [mediaController isRingerMuted];
+        
+        if(self.phoneCallOverrideMute && self.wasMuted) {
+            [mediaController setRingerMuted:NO];
+        }
+        if(self.phoneCallGradualVolume) {
+            [self setRingerVolumeGradually:self.phoneCallMaxVolume];
+        } else {
+            [self setRingerVolume:self.phoneCallMaxVolume];
+        }
     }
 }
 
