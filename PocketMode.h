@@ -16,7 +16,10 @@
 
 - (void)updateLux:(NSInteger)lux;
 
+- (void)incomingFaceTimeCall:(id)chat;
 - (void)incomingPhoneCall:(id)call;
+
+- (void)stopAlertTone;
 - (void)stopRinging;
 
 @end

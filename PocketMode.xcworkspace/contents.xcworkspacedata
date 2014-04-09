@@ -34,6 +34,7 @@
       location = "group:PocketMode.m">
    </FileRef>
    <FileRef
-      location = "group:Tweak.xm">
+      location = "group:Tweak.xm"
+      assignedFileDataType = "public.objective-c-source">
    </FileRef>
 </Workspace>

@@ -79,6 +79,7 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
 // Settings - Phone Calls
 
 @property (nonatomic, assign) BOOL phoneCallEnabled;
+@property (nonatomic, assign) BOOL phoneCallFacetimeEnabled;
 @property (nonatomic, assign) BOOL phoneCallGradualVolume;
 @property (nonatomic, assign) BOOL phoneCallOverrideMute;
 @property (nonatomic, assign) float phoneCallMaxVolume;
@@ -118,6 +119,7 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
     self.luxThreshold = 10;
     
     self.phoneCallEnabled = YES;
+    self.phoneCallFacetimeEnabled = YES;
     self.phoneCallGradualVolume = YES;
     self.phoneCallOverrideMute = NO;
     self.phoneCallMaxVolume = 1.0;
@@ -153,6 +155,9 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
     }
     if([preferences objectForKey:PMPreferencePhoneCallVolume]) {
         self.phoneCallMaxVolume = [[preferences objectForKey:PMPreferencePhoneCallVolume] floatValue];
+    }
+    if([preferences objectForKey:PMPreferencePhoneCallFacetimeEnabled]) {
+        self.phoneCallFacetimeEnabled = [[preferences objectForKey:PMPreferencePhoneCallFacetimeEnabled] boolValue];
     }
 }
 
@@ -248,12 +253,18 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
     self.gradualVolumeTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(incrementVolume:) userInfo:@{PMUserInfoMaxVolumeKey: @(volume), PMUserInfoIncrementsRemainingKey: @(increments)} repeats:NO];
 }
 
+- (void)stopAlertTone {
+    
+}
+
 - (void)stopRinging {
     if(self.overrideInProgress) {
         [self.gradualVolumeTimer invalidate];
         [self restoreRingerState];
     }
 }
+
+#pragma mark - Timers
 
 - (void)incrementVolume:(NSTimer *)timer {
     float maxVolume = [timer.userInfo[PMUserInfoMaxVolumeKey] floatValue];
@@ -277,16 +288,9 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
     }
 }
 
-#pragma mark - Handle Events
+#pragma mark - Logic
 
-- (void)incomingPhoneCall:(id)call {
-    if(self.alsConfigured && !self.overrideInProgress && self.phoneCallEnabled) {
-        NSLog(@"PocketMode: Incoming phone call... Current date: %@ ALS staleness: %@ Lux: %ld", [NSDate date], self.lastReadingDate, (long)self.lux);
-    } else {
-        NSLog(@"PocketMode: Incoming phone call... ALS not configured!");
-        return;
-    }
-    
+- (void)startHandlingCall {
     [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:NO forAudioCategory:@"Ringtone"];
     
     float currentVolume;
@@ -310,6 +314,31 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
             [self setRingerVolume:self.phoneCallMaxVolume];
         }
     }
+}
+
+
+#pragma mark - Handle Events
+
+- (void)incomingFaceTimeCall:(id)chat {
+    if(self.alsConfigured && !self.overrideInProgress && self.phoneCallEnabled && self.phoneCallFacetimeEnabled) {
+        NSLog(@"PocketMode: Incoming FaceTime call... Current date: %@ ALS staleness: %@ Lux: %ld", [NSDate date], self.lastReadingDate, (long)self.lux);
+    } else {
+        NSLog(@"PocketMode: Incoming FaceTime call... Not overriding.");
+        return;
+    }
+    
+    [self startHandlingCall];
+}
+
+- (void)incomingPhoneCall:(id)call {
+    if(self.alsConfigured && !self.overrideInProgress && self.phoneCallEnabled) {
+        NSLog(@"PocketMode: Incoming phone call... Current date: %@ ALS staleness: %@ Lux: %ld", [NSDate date], self.lastReadingDate, (long)self.lux);
+    } else {
+        NSLog(@"PocketMode: Incoming phone call... Not overriding.");
+        return;
+    }
+    
+    [self startHandlingCall];
 }
 
 @end
