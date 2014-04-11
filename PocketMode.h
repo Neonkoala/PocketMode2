@@ -8,6 +8,8 @@
 
 #import <Foundation/Foundation.h>
 
+@class BBBulletin;
+
 @interface PocketMode : NSObject
 
 + (id)sharedManager;
@@ -16,6 +18,7 @@
 
 - (void)updateLux:(NSInteger)lux;
 
+- (void)incomingBulletin:(BBBulletin *)bulletin;
 - (void)incomingFaceTimeCall:(id)chat;
 - (void)incomingPhoneCall:(id)call;
 

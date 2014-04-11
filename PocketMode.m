@@ -8,6 +8,7 @@
 
 #import "PocketMode.h"
 
+#import <BulletinBoard/BBBulletin.h>
 #import <Celestial/Celestial.h>
 #import <IOKit/hid/IOHIDEventSystemClient.h>
 #import <UIKit/UIApplication2.h>
@@ -318,6 +319,12 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
 
 
 #pragma mark - Handle Events
+
+- (void)incomingBulletin:(BBBulletin *)bulletin {
+    NSLog(@"PocketMode: Incoming bulletin:\n  bulletinID: %@\n  bulletinVersionID: %@\n  publisherBulletinID: %@\n  recordID: %@\n  title: %@\n  observers: %@\n  alertSuppressionContexts: %@\n  context: %@\n  dismissalID: %@\n  sectionID: %@\n  alertSuppressionAppIDs: %@", bulletin.bulletinID, bulletin.bulletinVersionID, bulletin.publisherBulletinID, bulletin.recordID, bulletin.title, bulletin.observers, bulletin.alertSuppressionContexts, bulletin.context, bulletin.dismissalID, bulletin.sectionID, bulletin.alertSuppressionAppIDs);
+    
+    // sectionID: com.apple.MobileSMS
+}
 
 - (void)incomingFaceTimeCall:(id)chat {
     if(self.alsConfigured && !self.overrideInProgress && self.phoneCallEnabled && self.phoneCallFacetimeEnabled) {

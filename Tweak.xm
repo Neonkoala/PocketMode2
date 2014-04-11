@@ -93,6 +93,8 @@ CHOptimizedMethod(1, self, BOOL, SBBulletinSoundController, playSoundForBulletin
     // Push - GMail tested
     NSLog(@"PocketMode: Playing sound for bulletin: %@", bulletin);
     
+    [[PocketMode sharedManager] incomingBulletin:bulletin];
+    
     return result;
 }
 

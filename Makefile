@@ -7,7 +7,7 @@ export THEOS_DEVICE_IP = 192.168.0.6
 TWEAK_NAME = PocketMode
 PocketMode_FILES = Tweak.xm PocketMode.m
 PocketMode_FRAMEWORKS = IOKit UIKit
-PocketMode_PRIVATE_FRAMEWORKS = Celestial
+PocketMode_PRIVATE_FRAMEWORKS = BulletinBoard Celestial
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
