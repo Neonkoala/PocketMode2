@@ -47,6 +47,8 @@ void preferenceNotificationCallback(CFNotificationCenterRef center, void *observ
     [[PocketMode sharedManager] updatePreferences];
 }
 
+NSString * const PMSMSIdentifier = @"com.apple.MobileSMS";
+
 NSString * const PMPreferencesPath = @"/var/mobile/Library/Preferences/be.dawson.pocketmodeprefs.plist";
 
 NSString * const PMUserInfoIncrementsRemainingKey = @"IncrementsRemainingKey";
@@ -59,6 +61,15 @@ NSString * const PMPreferencePhoneCallGradualVolume = @"PhoneCallGradual";
 NSString * const PMPreferencePhoneCallOverrideMute = @"PhoneCallOverrideMute";
 NSString * const PMPreferencePhoneCallVolume = @"PhoneCallVolume";
 NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabled";
+
+NSString * const PMPreferenceMessagesEnabled = @"MessagesEnabled";
+NSString * const PMPreferenceMessagesOverrideMute = @"MessagesOverrideMute";
+NSString * const PMPreferenceMessagesVolume = @"MessagesVolume";
+
+NSString * const PMPreferenceNotificationsEnabled = @"NotificationsEnabled";
+NSString * const PMPreferenceNotificationsOverrideMute = @"NotificationsOverrideMute";
+NSString * const PMPreferenceNotificationsVolume = @"NotificationsVolume";
+NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabled";
 
 @interface PocketMode()
 
@@ -84,6 +95,19 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
 @property (nonatomic, assign) BOOL phoneCallGradualVolume;
 @property (nonatomic, assign) BOOL phoneCallOverrideMute;
 @property (nonatomic, assign) float phoneCallMaxVolume;
+
+// Settings - Messages
+
+@property (nonatomic, assign) BOOL messagesEnabled;
+@property (nonatomic, assign) BOOL messagesOverrideMute;
+@property (nonatomic, assign) float messagesVolume;
+
+// Settings - Push Notifications
+
+@property (nonatomic, assign) BOOL notificationsEnabled;
+@property (nonatomic, assign) BOOL notificationsOverrideMute;
+@property (nonatomic, assign) BOOL notificationsMailEnabled;
+@property (nonatomic, assign) float notificationsVolume;
 
 @end
 
@@ -125,6 +149,15 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
     self.phoneCallOverrideMute = NO;
     self.phoneCallMaxVolume = 1.0;
     
+    self.messagesEnabled = YES;
+    self.messagesOverrideMute = NO;
+    self.messagesVolume = 1.0;
+    
+    self.notificationsEnabled = NO;
+    self.notificationsOverrideMute = NO;
+    self.notificationsMailEnabled = NO;
+    self.notificationsVolume = 1.0;
+    
     float currentVolume;
     [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
     self.regularVolume = currentVolume;
@@ -145,6 +178,8 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
     if([preferences objectForKey:PMPreferenceGlobalEnabled]) {
         self.globalEnabled = [[preferences objectForKey:PMPreferenceGlobalEnabled] boolValue];
     }
+    
+    // Phone
     if([preferences objectForKey:PMPreferencePhoneCallEnabled]) {
         self.phoneCallEnabled = [[preferences objectForKey:PMPreferencePhoneCallEnabled] boolValue];
     }
@@ -159,6 +194,31 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
     }
     if([preferences objectForKey:PMPreferencePhoneCallFacetimeEnabled]) {
         self.phoneCallFacetimeEnabled = [[preferences objectForKey:PMPreferencePhoneCallFacetimeEnabled] boolValue];
+    }
+    
+    // Messages
+    if([preferences objectForKey:PMPreferenceMessagesEnabled]) {
+        self.messagesEnabled = [[preferences objectForKey:PMPreferenceMessagesEnabled] boolValue];
+    }
+    if([preferences objectForKey:PMPreferenceMessagesOverrideMute]) {
+        self.messagesOverrideMute = [[preferences objectForKey:PMPreferenceMessagesOverrideMute] boolValue];
+    }
+    if([preferences objectForKey:PMPreferenceMessagesVolume]) {
+        self.messagesVolume = [[preferences objectForKey:PMPreferenceMessagesVolume] floatValue];
+    }
+    
+    // Notifications
+    if([preferences objectForKey:PMPreferenceNotificationsEnabled]) {
+        self.notificationsEnabled = [[preferences objectForKey:PMPreferenceNotificationsEnabled] boolValue];
+    }
+    if([preferences objectForKey:PMPreferenceNotificationsOverrideMute]) {
+        self.notificationsOverrideMute = [[preferences objectForKey:PMPreferenceNotificationsOverrideMute] boolValue];
+    }
+    if([preferences objectForKey:PMPreferenceNotificationsMailEnabled]) {
+        self.notificationsMailEnabled = [[preferences objectForKey:PMPreferenceNotificationsMailEnabled] boolValue];
+    }
+    if([preferences objectForKey:PMPreferenceNotificationsVolume]) {
+        self.notificationsVolume = [[preferences objectForKey:PMPreferenceNotificationsVolume] floatValue];
     }
 }
 
@@ -291,7 +351,7 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
 
 #pragma mark - Logic
 
-- (void)startHandlingCall {
+- (void)handleCall {
     [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:NO forAudioCategory:@"Ringtone"];
     
     float currentVolume;
@@ -317,13 +377,34 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
     }
 }
 
+- (void)handleMessage {
+    [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:NO forAudioCategory:@"Ringtone"];
+    
+    float currentVolume;
+    [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
+    self.regularVolume = currentVolume;
+    
+    if(self.lux <= self.luxThreshold && self.messagesVolume > currentVolume) {
+        self.overrideInProgress = YES;
+    }
+}
 
 #pragma mark - Handle Events
 
 - (void)incomingBulletin:(BBBulletin *)bulletin {
-    NSLog(@"PocketMode: Incoming bulletin:\n  bulletinID: %@\n  bulletinVersionID: %@\n  publisherBulletinID: %@\n  recordID: %@\n  title: %@\n  observers: %@\n  alertSuppressionContexts: %@\n  context: %@\n  dismissalID: %@\n  sectionID: %@\n  alertSuppressionAppIDs: %@", bulletin.bulletinID, bulletin.bulletinVersionID, bulletin.publisherBulletinID, bulletin.recordID, bulletin.title, bulletin.observers, bulletin.alertSuppressionContexts, bulletin.context, bulletin.dismissalID, bulletin.sectionID, bulletin.alertSuppressionAppIDs);
+    NSLog(@"PocketMode: Incoming bulletin sectionID: %@", bulletin.sectionID);
     
     // sectionID: com.apple.MobileSMS
+    
+    if(!self.alsConfigured || self.overrideInProgress) {
+        return;
+    }
+    
+    if([bulletin.sectionID isEqualToString:PMSMSIdentifier]) {
+        if(self.messagesEnabled) {
+            NSLog(@"PocketMode: Incoming SMS: %@", bulletin);
+        }
+    }
 }
 
 - (void)incomingFaceTimeCall:(id)chat {
@@ -334,7 +415,7 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
         return;
     }
     
-    [self startHandlingCall];
+    [self handleCall];
 }
 
 - (void)incomingPhoneCall:(id)call {
@@ -345,7 +426,7 @@ NSString * const PMPreferencePhoneCallFacetimeEnabled = @"PhoneCallFacetimeEnabl
         return;
     }
     
-    [self startHandlingCall];
+    [self handleCall];
 }
 
 @end

@@ -1,7 +1,7 @@
 include theos/makefiles/common.mk
 
 BUNDLE_NAME = PocketModePrefs
-PocketModePrefs_FILES = PocketModePrefs.mm
+PocketModePrefs_FILES = PocketModePrefs.mm NotificationsController.m
 PocketModePrefs_INSTALL_PATH = /Library/PreferenceBundles
 PocketModePrefs_FRAMEWORKS = UIKit
 PocketModePrefs_PRIVATE_FRAMEWORKS = Preferences

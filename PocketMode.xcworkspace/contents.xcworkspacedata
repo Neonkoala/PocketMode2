@@ -5,6 +5,12 @@
       location = "container:"
       name = "Preferences">
       <FileRef
+         location = "group:pocketmodeprefs/NotificationsController.h">
+      </FileRef>
+      <FileRef
+         location = "group:pocketmodeprefs/NotificationsController.m">
+      </FileRef>
+      <FileRef
          location = "group:pocketmodeprefs/PocketModePrefs.mm">
       </FileRef>
       <Group

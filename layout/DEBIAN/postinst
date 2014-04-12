@@ -1,0 +1,18 @@
+#!/bin/bash
+
+if [ ! -f /Library/PreferenceBundles/PocketModePrefs.bundle/FaceTime\@2x.png ]; then
+    ln -s /Applications/Preferences.app/FaceTime\@2x.png /Library/PreferenceBundles/PocketModePrefs.bundle/FaceTime\@2x.png
+fi
+if [ ! -f /Library/PreferenceBundles/PocketModePrefs.bundle/SpeakerMute\@2x.png ]; then
+    ln -s /Applications/Preferences.app/SpeakerMute\@2x.png /Library/PreferenceBundles/PocketModePrefs.bundle/SpeakerMute\@2x.png
+fi
+if [ ! -f /Library/PreferenceBundles/PocketModePrefs.bundle/SpeakerMax\@2x.png ]; then
+    ln -s /Applications/Preferences.app/SpeakerMax\@2x.png /Library/PreferenceBundles/PocketModePrefs.bundle/
+fi
+
+if [ ! -f /Library/PreferenceBundles/PocketModePrefs.bundle/Phone\@2x.png ]; then
+    ln -s /System/Library/PreferenceBundles/MobilePhoneSettings.bundle/icon\@2x.png /Library/PreferenceBundles/PocketModePrefs.bundle/Phone\@2x.png
+fi
+if [ ! -f /Library/PreferenceBundles/PocketModePrefs.bundle/Messages\@2x.png ]; then
+    ln -s /System/Library/PreferenceBundles/SMSPreferences.bundle/icon\@2x.png /Library/PreferenceBundles/PocketModePrefs.bundle/Messages\@2x.png
+fi
