@@ -13,8 +13,8 @@
 #import <IOKit/hid/IOHIDEventSystemClient.h>
 #import <UIKit/UIApplication2.h>
 
-#import <SpringBoard/SpringBoard.h>
 #import <objc/runtime.h>
+#import <notify.h>
 
 
 #if defined __cplusplus
@@ -286,8 +286,11 @@ NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabl
     self.overrideInProgress = NO;
     
     if(self.wasMuted) {
-        SBMediaController *mediaController = [objc_getClass("SBMediaController") sharedInstance];
-        [mediaController setRingerMuted:YES];
+        int token;
+        notify_register_check("com.apple.springboard.ringerstate", &token);
+        notify_set_state(token, 0);
+        notify_cancel(token);
+        notify_post("com.apple.springboard.ringerstate");
     }
     
     // Hack to hide HUD
@@ -315,7 +318,9 @@ NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabl
 }
 
 - (void)stopAlertTone {
-    
+    if(self.overrideInProgress) {
+        [self restoreRingerState];
+    }
 }
 
 - (void)stopRinging {
@@ -360,19 +365,33 @@ NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabl
     
     NSLog(@"Current volume: %f", currentVolume);
     
-    if(self.lux <= self.luxThreshold && self.phoneCallMaxVolume > currentVolume) {
+    if(self.lux <= self.luxThreshold) {
         self.overrideInProgress = YES;
         
-        SBMediaController *mediaController = [objc_getClass("SBMediaController") sharedInstance];
-        self.wasMuted = [mediaController isRingerMuted];
+        int token;
+        uint64_t state;
+        notify_register_check("com.apple.springboard.ringerstate", &token);
+        notify_get_state(token, &state);
+        
+        if(state == 0) {
+            self.wasMuted = YES;
+        } else {
+            self.wasMuted = NO;
+        }
         
         if(self.phoneCallOverrideMute && self.wasMuted) {
-            [mediaController setRingerMuted:NO];
+            notify_set_state(token, 1);
         }
-        if(self.phoneCallGradualVolume) {
-            [self setRingerVolumeGradually:self.phoneCallMaxVolume];
-        } else {
-            [self setRingerVolume:self.phoneCallMaxVolume];
+        
+        notify_cancel(token);
+        notify_post("com.apple.springboard.ringerstate");
+        
+        if(self.phoneCallMaxVolume > currentVolume) {
+            if(self.phoneCallGradualVolume) {
+                [self setRingerVolumeGradually:self.phoneCallMaxVolume];
+            } else {
+                [self setRingerVolume:self.phoneCallMaxVolume];
+            }
         }
     }
 }
@@ -384,8 +403,30 @@ NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabl
     [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
     self.regularVolume = currentVolume;
     
-    if(self.lux <= self.luxThreshold && self.messagesVolume > currentVolume) {
+    if(self.lux <= self.luxThreshold) {
         self.overrideInProgress = YES;
+        
+        int token;
+        uint64_t state;
+        notify_register_check("com.apple.springboard.ringerstate", &token);
+        notify_get_state(token, &state);
+        
+        if(state == 0) {
+            self.wasMuted = YES;
+        } else {
+            self.wasMuted = NO;
+        }
+        
+        if(self.messagesOverrideMute && self.wasMuted) {
+            notify_set_state(token, 1);
+        }
+        
+        notify_cancel(token);
+        notify_post("com.apple.springboard.ringerstate");
+        
+        if(self.messagesVolume > currentVolume) {
+            [self setRingerVolume:self.messagesVolume];
+        }
     }
 }
 
@@ -394,15 +435,15 @@ NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabl
 - (void)incomingBulletin:(BBBulletin *)bulletin {
     NSLog(@"PocketMode: Incoming bulletin sectionID: %@", bulletin.sectionID);
     
-    // sectionID: com.apple.MobileSMS
-    
     if(!self.alsConfigured || self.overrideInProgress) {
         return;
     }
     
     if([bulletin.sectionID isEqualToString:PMSMSIdentifier]) {
         if(self.messagesEnabled) {
-            NSLog(@"PocketMode: Incoming SMS: %@", bulletin);
+            NSLog(@"PocketMode: Incoming SMS triggered: %@", bulletin.sectionID);
+            
+            [self handleMessage];
         }
     }
 }

@@ -47,36 +47,13 @@ CHOptimizedMethod(0, self, void, MPIncomingPhoneCallController, stopRingingOrVib
 }
 
 #pragma mark - SpringBoard
-                       
-/*
-CHDeclareClass(SBAlertItemsController);
-
-CHOptimizedMethod(0, self, id, SBAlertItemsController, deactivateAlertItemsForLock) {
-    id orig = CHSuper(0, SBAlertItemsController, deactivateAlertItemsForLock);
-    
-    NSLog(@"PocketMode: deactivateAlertItemsForLock: %@", orig);
-    
-    return orig;
-}
-
-CHOptimizedMethod(0, self, BOOL, SBAlertItemsController, deactivateAlertForMenuClick) {
-    BOOL result = CHSuper(0, SBAlertItemsController, deactivateAlertForMenuClick);
-    
-    NSLog(@"PocketMode: deactivateAlertForMenuClick: %d", result);
-    
-    return result;
-}
-
-CHOptimizedMethod(0, self, void, SBAlertItemsController, deactivateAlertItemsForAlertActivation) {
-    NSLog(@"PocketMode: deactivateAlertItemsForAlertActivation");
-    
-    CHSuper(0, SBAlertItemsController, deactivateAlertItemsForAlertActivation);
-}*/
 
 CHDeclareClass(SBBulletinSoundController);
 
 CHOptimizedMethod(0, self, void, SBBulletinSoundController, killSounds) {
     NSLog(@"PocketMode: Killing ALL sounds");
+    
+    [[PocketMode sharedManager] stopAlertTone];
     
     CHSuper(0, SBBulletinSoundController, killSounds);
 }
@@ -84,16 +61,25 @@ CHOptimizedMethod(0, self, void, SBBulletinSoundController, killSounds) {
 CHOptimizedMethod(1, self, void, SBBulletinSoundController, killSoundForBulletin, id, bulletin) {
     NSLog(@"PocketMode: Killing sounds for bulletin: %@", bulletin);
     
+    [[PocketMode sharedManager] stopAlertTone];
+    
     CHSuper(1, SBBulletinSoundController, killSoundForBulletin, bulletin);
 }
 
 CHOptimizedMethod(1, self, BOOL, SBBulletinSoundController, playSoundForBulletin, id, bulletin) {
-    BOOL result = CHSuper(1, SBBulletinSoundController, playSoundForBulletin, bulletin);
-    
-    // Push - GMail tested
     NSLog(@"PocketMode: Playing sound for bulletin: %@", bulletin);
     
     [[PocketMode sharedManager] incomingBulletin:bulletin];
+    
+    BOOL result = CHSuper(1, SBBulletinSoundController, playSoundForBulletin, bulletin);
+    
+    return result;
+}
+
+CHOptimizedMethod(0, self, BOOL, SBBulletinSoundController, quietModeEnabled) {
+    BOOL result = CHSuper(0, SBBulletinSoundController, quietModeEnabled);
+    
+    NSLog(@"PocketMode: Quiet mode enabled: %d", result);
     
     return result;
 }
@@ -125,17 +111,11 @@ CHConstructor {
     CHLoadLateClass(SBPluginManager);
     CHHook(1, SBPluginManager, loadPluginBundle);
     
-    /*
-    CHLoadLateClass(SBAlertItemsController);
-    CHHook(0, SBAlertItemsController, deactivateAlertItemsForLock);
-    CHHook(0, SBAlertItemsController, deactivateAlertForMenuClick);
-    CHHook(0, SBAlertItemsController, deactivateAlertItemsForAlertActivation);
-    */
-    
     CHLoadLateClass(SBBulletinSoundController);
     CHHook(0, SBBulletinSoundController, killSounds);
     CHHook(1, SBBulletinSoundController, killSoundForBulletin);
     CHHook(1, SBBulletinSoundController, playSoundForBulletin);
+    CHHook(0, SBBulletinSoundController, quietModeEnabled);
     
     [PocketMode sharedManager];
 
