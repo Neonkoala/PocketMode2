@@ -76,14 +76,6 @@ CHOptimizedMethod(1, self, BOOL, SBBulletinSoundController, playSoundForBulletin
     return result;
 }
 
-CHOptimizedMethod(0, self, BOOL, SBBulletinSoundController, quietModeEnabled) {
-    BOOL result = CHSuper(0, SBBulletinSoundController, quietModeEnabled);
-    
-    NSLog(@"PocketMode: Quiet mode enabled: %d", result);
-    
-    return result;
-}
-
 CHDeclareClass(SBPluginManager);
 
 CHOptimizedMethod(1, self, Class, SBPluginManager, loadPluginBundle, NSBundle *, bundle) {
@@ -115,7 +107,6 @@ CHConstructor {
     CHHook(0, SBBulletinSoundController, killSounds);
     CHHook(1, SBBulletinSoundController, killSoundForBulletin);
     CHHook(1, SBBulletinSoundController, playSoundForBulletin);
-    CHHook(0, SBBulletinSoundController, quietModeEnabled);
     
     [PocketMode sharedManager];
 

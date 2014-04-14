@@ -71,6 +71,8 @@ NSString * const PMPreferenceNotificationsOverrideMute = @"NotificationsOverride
 NSString * const PMPreferenceNotificationsVolume = @"NotificationsVolume";
 NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabled";
 
+NSString * const PMPreferenceLuxLevel = @"LuxLevel";
+
 @interface PocketMode()
 
 // State
@@ -83,6 +85,8 @@ NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabl
 @property (nonatomic, assign) NSInteger lux;
 @property (nonatomic, strong) NSDate *lastReadingDate;
 @property (nonatomic, strong) NSTimer *gradualVolumeTimer;
+@property (nonatomic, strong) NSTimer *soundMonitorTimer;
+@property (nonatomic, strong) BBSound *activeSound;
 
 // Settings - General
 
@@ -220,6 +224,11 @@ NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabl
     if([preferences objectForKey:PMPreferenceNotificationsVolume]) {
         self.notificationsVolume = [[preferences objectForKey:PMPreferenceNotificationsVolume] floatValue];
     }
+    
+    // Advanced
+    if([preferences objectForKey:PMPreferenceLuxLevel]) {
+        self.luxThreshold = [[preferences objectForKey:PMPreferenceLuxLevel] integerValue];
+    }
 }
 
 #pragma mark - ALS
@@ -283,8 +292,6 @@ NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabl
 - (void)restoreRingerState {
     [self setRingerVolume:self.regularVolume];
     
-    self.overrideInProgress = NO;
-    
     if(self.wasMuted) {
         int token;
         notify_register_check("com.apple.springboard.ringerstate", &token);
@@ -292,6 +299,8 @@ NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabl
         notify_cancel(token);
         notify_post("com.apple.springboard.ringerstate");
     }
+    
+    self.overrideInProgress = NO;
     
     // Hack to hide HUD
     [self performSelector:@selector(reenableRingerHUD) withObject:nil afterDelay:0.1];
@@ -354,6 +363,12 @@ NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabl
     }
 }
 
+- (void)checkSound:(NSTimer *)timer {
+    NSLog(@"PocketMode: Returning to normal after sound increase for alert...");
+    
+    [self stopAlertTone];
+}
+
 #pragma mark - Logic
 
 - (void)handleCall {
@@ -396,7 +411,7 @@ NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabl
     }
 }
 
-- (void)handleMessage {
+- (void)handleMessage:(BBBulletin *)bulletin {
     [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:NO forAudioCategory:@"Ringtone"];
     
     float currentVolume;
@@ -427,6 +442,9 @@ NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabl
         if(self.messagesVolume > currentVolume) {
             [self setRingerVolume:self.messagesVolume];
         }
+        
+        self.activeSound = bulletin.sound;
+        self.soundMonitorTimer = [NSTimer scheduledTimerWithTimeInterval:7.0 target:self selector:@selector(checkSound:) userInfo:nil repeats:NO];
     }
 }
 
@@ -443,7 +461,7 @@ NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabl
         if(self.messagesEnabled) {
             NSLog(@"PocketMode: Incoming SMS triggered: %@", bulletin.sectionID);
             
-            [self handleMessage];
+            [self handleMessage:bulletin];
         }
     }
 }

@@ -13,6 +13,15 @@
 	return _specifiers;
 }
 
+- (void)openTwitterLink {
+    NSURL *deepLinkURL = [NSURL URLWithString:@"twitter://user?screen_name=nidawson"];
+    if([[UIApplication sharedApplication] canOpenURL:deepLinkURL]) {
+        [[UIApplication sharedApplication] openURL:deepLinkURL];
+    } else {
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://twitter.com/nidawson"]];
+    }
+}
+
 - (void)openUserGuide {
     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"http://dawson.be"]];
 }
