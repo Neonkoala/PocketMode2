@@ -1,6 +1,6 @@
 Package: be.dawson.PocketMode
 Name: PocketMode
-Depends: mobilesubstrate, preferenceloader, firmware (>= 7.0)
+Depends: mobilesubstrate, preferenceloader, applist, firmware (>= 7.0)
 Version: 2.0.0
 Architecture: iphoneos-arm
 Description: An awesome MobileSubstrate tweak!

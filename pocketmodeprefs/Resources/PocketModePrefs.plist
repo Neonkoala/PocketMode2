@@ -26,7 +26,7 @@
 		</dict>
 		<dict>
 			<key>cell</key>
-			<string>PSLinkCell</string>
+			<string>PSButtonCell</string>
 			<key>action</key>
 			<string>openUserGuide</string>
 			<key>label</key>
@@ -194,6 +194,57 @@
 		</dict>
 		<dict>
 			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>bundle</key>
+			<string>AppList</string>
+			<key>isController</key>
+			<true/>
+			<key>label</key>
+			<string>Applications</string>
+			<key>ALAllowsSelection</key>
+			<true/>
+			<key>ALChangeNotification</key>
+			<string>be.dawson.pocketmode.prefsChanged</string>
+			<key>ALSectionDescriptors</key>
+			<array>
+				<dict>
+					<key>footer-title</key>
+					<string>Apps need to have Notification Centre enabled to function</string>
+					<key>items</key>
+					<array/>
+				</dict>
+				<dict>
+					<key>cell-class-name</key>
+					<string>ALCheckCell</string>
+					<key>icon-size</key>
+					<string>29</string>
+					<key>predicate</key>
+					<string>((isSystemApplication = TRUE) &amp;&amp; (displayIdentifier != &quot;com.apple.MobileSMS&quot;) &amp;&amp; (displayIdentifier != &quot;com.apple.mobilephone&quot;))</string>
+					<key>suppress-hidden-apps</key>
+					<true/>
+					<key>title</key>
+					<string>System Applications</string>
+				</dict>
+				<dict>
+					<key>cell-class-name</key>
+					<string>ALCheckCell</string>
+					<key>icon-size</key>
+					<string>29</string>
+					<key>predicate</key>
+					<string>(isSystemApplication = FALSE)</string>
+					<key>suppress-hidden-apps</key>
+					<true/>
+					<key>title</key>
+					<string>User Applications</string>
+				</dict>
+			</array>
+			<key>ALSettingsKeyPrefix</key>
+			<string>NotificationsApp-</string>
+			<key>ALSettingsPath</key>
+			<string>/var/mobile/Library/Preferences/be.dawson.pocketmodeprefs.plist</string>
+		</dict>
+		<dict>
+			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
 			<false/>
@@ -225,16 +276,6 @@
 			<string>SpeakerMax.png</string>
 			<key>PostNotification</key>
 			<string>be.dawson.pocketmode.prefsChanged</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>enabled</key>
-			<false/>
-			<key>label</key>
-			<string>Applications</string>
-			<key>detail</key>
-			<string>NotificationsController</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -282,7 +323,7 @@
 		</dict>
 		<dict>
 			<key>cell</key>
-			<string>PSLinkCell</string>
+			<string>PSButtonCell</string>
 			<key>action</key>
 			<string>openTwitterLink</string>
 			<key>label</key>

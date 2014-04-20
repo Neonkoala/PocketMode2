@@ -3,6 +3,7 @@ include theos/makefiles/common.mk
 export TARGET = iphone::7.0
 export ARCHS = armv7 armv7s arm64
 export THEOS_DEVICE_IP = 192.168.0.6
+ADDITIONAL_OBJCFLAGS = -fobjc-arc
 
 TWEAK_NAME = PocketMode
 PocketMode_FILES = Tweak.xm PocketMode.m

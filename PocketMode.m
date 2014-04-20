@@ -69,7 +69,7 @@ NSString * const PMPreferenceMessagesVolume = @"MessagesVolume";
 NSString * const PMPreferenceNotificationsEnabled = @"NotificationsEnabled";
 NSString * const PMPreferenceNotificationsOverrideMute = @"NotificationsOverrideMute";
 NSString * const PMPreferenceNotificationsVolume = @"NotificationsVolume";
-NSString * const PMPreferenceNotificationsMailEnabled = @"NotificationsMailEnabled";
+NSString * const PMPreferenceNotificationsAppPrefix = @"NotificationsApp-";
 
 NSString * const PMPreferenceLuxLevel = @"LuxLevel";
 
@@ -110,8 +110,8 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
 
 @property (nonatomic, assign) BOOL notificationsEnabled;
 @property (nonatomic, assign) BOOL notificationsOverrideMute;
-@property (nonatomic, assign) BOOL notificationsMailEnabled;
 @property (nonatomic, assign) float notificationsVolume;
+@property (nonatomic, strong) NSArray *notificationsAppIdentifiers;
 
 @end
 
@@ -159,7 +159,6 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
     
     self.notificationsEnabled = NO;
     self.notificationsOverrideMute = NO;
-    self.notificationsMailEnabled = NO;
     self.notificationsVolume = 1.0;
     
     float currentVolume;
@@ -218,9 +217,6 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
     if([preferences objectForKey:PMPreferenceNotificationsOverrideMute]) {
         self.notificationsOverrideMute = [[preferences objectForKey:PMPreferenceNotificationsOverrideMute] boolValue];
     }
-    if([preferences objectForKey:PMPreferenceNotificationsMailEnabled]) {
-        self.notificationsMailEnabled = [[preferences objectForKey:PMPreferenceNotificationsMailEnabled] boolValue];
-    }
     if([preferences objectForKey:PMPreferenceNotificationsVolume]) {
         self.notificationsVolume = [[preferences objectForKey:PMPreferenceNotificationsVolume] floatValue];
     }
@@ -229,6 +225,19 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
     if([preferences objectForKey:PMPreferenceLuxLevel]) {
         self.luxThreshold = [[preferences objectForKey:PMPreferenceLuxLevel] integerValue];
     }
+
+    // Per app notifications
+    NSMutableArray *enabledApps = [NSMutableArray array];
+    
+    [preferences enumerateKeysAndObjectsUsingBlock:^(NSString *key, id obj, BOOL *stop) {
+        if([key hasPrefix:PMPreferenceNotificationsAppPrefix]) {
+            if([obj boolValue]) {
+                [enabledApps addObject:[key substringFromIndex:[PMPreferenceNotificationsAppPrefix length]]];
+            }
+        }
+    }];
+    
+    self.notificationsAppIdentifiers = enabledApps;
 }
 
 #pragma mark - ALS
@@ -293,11 +302,18 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
     [self setRingerVolume:self.regularVolume];
     
     if(self.wasMuted) {
+        uint64_t state;
         int token;
         notify_register_check("com.apple.springboard.ringerstate", &token);
-        notify_set_state(token, 0);
-        notify_cancel(token);
-        notify_post("com.apple.springboard.ringerstate");
+        notify_get_state(token, &state);
+        
+        if(state != 0) {
+            notify_set_state(token, 0);
+            notify_cancel(token);
+            notify_post("com.apple.springboard.ringerstate");
+        } else {
+            notify_cancel(token);
+        }
     }
     
     self.overrideInProgress = NO;
@@ -448,6 +464,45 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
     }
 }
 
+- (void)handleNotification:(BBBulletin *)bulletin {
+    NSLog(@"PocketMode: Handling notification...");
+    
+    [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:NO forAudioCategory:@"Ringtone"];
+    
+    float currentVolume;
+    [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
+    self.regularVolume = currentVolume;
+    
+    if(self.lux <= self.luxThreshold) {
+        self.overrideInProgress = YES;
+        
+        int token;
+        uint64_t state;
+        notify_register_check("com.apple.springboard.ringerstate", &token);
+        notify_get_state(token, &state);
+        
+        if(state == 0) {
+            self.wasMuted = YES;
+        } else {
+            self.wasMuted = NO;
+        }
+        
+        if(self.notificationsOverrideMute && self.wasMuted) {
+            notify_set_state(token, 1);
+        }
+        
+        notify_cancel(token);
+        notify_post("com.apple.springboard.ringerstate");
+        
+        if(self.notificationsVolume > currentVolume) {
+            [self setRingerVolume:self.notificationsVolume];
+        }
+        
+        self.activeSound = bulletin.sound;
+        self.soundMonitorTimer = [NSTimer scheduledTimerWithTimeInterval:7.0 target:self selector:@selector(checkSound:) userInfo:nil repeats:NO];
+    }
+}
+
 #pragma mark - Handle Events
 
 - (void)incomingBulletin:(BBBulletin *)bulletin {
@@ -462,6 +517,12 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
             NSLog(@"PocketMode: Incoming SMS triggered: %@", bulletin.sectionID);
             
             [self handleMessage:bulletin];
+        }
+    } else {
+        for(NSString *appIdentifier in self.notificationsAppIdentifiers) {
+            if([appIdentifier isEqualToString:bulletin.sectionID]) {
+                [self handleNotification:bulletin];
+            }
         }
     }
 }
