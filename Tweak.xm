@@ -9,6 +9,8 @@ CHDeclareClass(MFSoundController);
 CHOptimizedClassMethod(2, self, void, MFSoundController, playNewMailSoundStyle, unsigned, arg1, forAccount, id, account) {
     NSLog(@"PocketMode: playNewMailSoundStyle account: %@", account);
     
+    [[PocketMode sharedManager] incomingMail];
+    
     CHSuper(2, MFSoundController, playNewMailSoundStyle, arg1, forAccount, account);
 }
 
@@ -64,16 +66,6 @@ CHOptimizedMethod(0, self, void, MPIncomingPhoneCallController, stopRingingOrVib
 
 #pragma mark - SpringBoard
 
-CHDeclareClass(SBBannerController);
-
-CHOptimizedMethod(1, self, void, SBBannerController, _playSoundForContext, id, context) {
-    NSLog(@"PocketMode: Play sound for context: %@", context);
-    
-    // Context: <SBUIBannerContext:0x17043e4c0 target=<SBBannerController: 0x1704aa020> source=<SBBulletinBannerController: 0x170a459a0> item=<SBBulletinBannerItem: 0x170e40780>>
-    
-    CHSuper(1, SBBannerController, _playSoundForContext, context);
-}
-
 CHDeclareClass(SBBulletinSoundController);
 
 CHOptimizedMethod(0, self, void, SBBulletinSoundController, killSounds) {
@@ -102,16 +94,6 @@ CHOptimizedMethod(1, self, BOOL, SBBulletinSoundController, playSoundForBulletin
     return result;
 }
 
-CHDeclareClass(SBLockScreenNotificationListController);
-
-CHOptimizedMethod(1, self, void, SBLockScreenNotificationListController, _playSoundForBulletinIfPossible, id, bulletinIfPossible) {
-    NSLog(@"PocketMode: _playSoundForBulletinIfPossible: %@", bulletinIfPossible);
-    
-    // Check if possible
-    
-    CHSuper(1, SBLockScreenNotificationListController, _playSoundForBulletinIfPossible, bulletinIfPossible);
-}
-
 CHDeclareClass(SBPluginManager);
 
 CHOptimizedMethod(1, self, Class, SBPluginManager, loadPluginBundle, NSBundle *, bundle) {
@@ -134,47 +116,15 @@ CHOptimizedMethod(1, self, Class, SBPluginManager, loadPluginBundle, NSBundle *,
     return orig;
 }
 
-CHDeclareClass(SBPushStore);
-
-CHOptimizedMethod(7, self, void, SBPushStore, saveRemoteNotificationWithMessage, id, message, soundName, id, name, actionText, id, text, badge, id, badge, userInfo, id, info, launchImage, id, image, forBundleID, id, bundleID) {
-    NSLog(@"PocketMode: saveRemoteNotificationWithMessage: %@ soundName: %@ actionText: %@ badge: %@ userInfo: %@ bundleID: %@", message, name, text, badge, info, bundleID);
-    
-    // Good for all push except mail / messages
-    
-    CHSuper(7, SBPushStore, saveRemoteNotificationWithMessage, message, soundName, name, actionText, text, badge, badge, userInfo, info, launchImage, image, forBundleID, bundleID);
-}
-
-CHDeclareClass(SBSoundController);
-
-CHOptimizedMethod(3, self, BOOL, SBSoundController, playSound, id, sound, environments, int, environments, completion, id, completion) {
-    BOOL result = CHSuper(3, SBSoundController, playSound, sound, environments, environments, completion, completion);
-    
-    NSLog(@"PocketMode: SBSoundController: playSound: %@ environments: %d completion: %@", sound, environments, completion);
-    
-    return result;
-}
-
 CHConstructor {
     @autoreleasepool {
         CHLoadLateClass(SBPluginManager);
         CHHook(1, SBPluginManager, loadPluginBundle);
-    
-        CHLoadLateClass(SBBannerController);
-        CHHook(1, SBBannerController, _playSoundForContext);
         
         CHLoadLateClass(SBBulletinSoundController);
         CHHook(0, SBBulletinSoundController, killSounds);
         CHHook(1, SBBulletinSoundController, killSoundForBulletin);
         CHHook(1, SBBulletinSoundController, playSoundForBulletin);
-        
-        CHLoadLateClass(SBLockScreenNotificationListController);
-        CHHook(1, SBLockScreenNotificationListController, _playSoundForBulletinIfPossible);
-        
-        CHLoadLateClass(SBPushStore);
-        CHHook(7, SBPushStore, saveRemoteNotificationWithMessage, soundName, actionText, badge, userInfo, launchImage, forBundleID);
-        
-        CHLoadLateClass(SBSoundController);
-        CHHook(3, SBSoundController, playSound, environments, completion);
         
         CHLoadLateClass(MFSoundController);
         CHHook(2, MFSoundController, playNewMailSoundStyle, forAccount);

@@ -19,6 +19,7 @@
 - (void)updateLux:(NSInteger)lux;
 
 - (void)incomingBulletin:(BBBulletin *)bulletin;
+- (void)incomingMail;
 - (void)incomingFaceTimeCall:(id)chat;
 - (void)incomingPhoneCall:(id)call;
 

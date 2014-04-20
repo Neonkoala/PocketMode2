@@ -527,6 +527,10 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
     }
 }
 
+- (void)incomingMail {
+    
+}
+
 - (void)incomingFaceTimeCall:(id)chat {
     if(self.alsConfigured && !self.overrideInProgress && self.phoneCallEnabled && self.phoneCallFacetimeEnabled) {
         NSLog(@"PocketMode: Incoming FaceTime call... Current date: %@ ALS staleness: %@ Lux: %ld", [NSDate date], self.lastReadingDate, (long)self.lux);
