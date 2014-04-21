@@ -84,7 +84,7 @@
 			<key>key</key>
 			<string>PhoneCallGradual</string>
 			<key>label</key>
-			<string>Gradually Louder</string>
+			<string>Gradual Volume Increase</string>
 			<key>PostNotification</key>
 			<string>be.dawson.pocketmode.prefsChanged</string>
 		</dict>
