@@ -23,7 +23,7 @@
 }
 
 - (void)openUserGuide {
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"http://dawson.be"]];
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"http://neonkoala.co.uk/pocketmode-2"]];
 }
 
 @end

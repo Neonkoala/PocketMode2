@@ -182,7 +182,7 @@
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
-			<true/>
+			<false/>
 			<key>defaults</key>
 			<string>be.dawson.pocketmodeprefs</string>
 			<key>key</key>
@@ -207,12 +207,6 @@
 			<string>be.dawson.pocketmode.prefsChanged</string>
 			<key>ALSectionDescriptors</key>
 			<array>
-				<dict>
-					<key>footer-title</key>
-					<string>Apps need to have Notification Centre enabled to function</string>
-					<key>items</key>
-					<array/>
-				</dict>
 				<dict>
 					<key>cell-class-name</key>
 					<string>ALCheckCell</string>

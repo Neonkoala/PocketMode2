@@ -1,4 +1,5 @@
 #import <CaptainHook/CaptainHook.h>
+#import <notify.h>
 
 #import "PocketMode.h"
 
@@ -7,9 +8,10 @@
 CHDeclareClass(MFSoundController);
 
 CHOptimizedClassMethod(2, self, void, MFSoundController, playNewMailSoundStyle, unsigned, arg1, forAccount, id, account) {
-    NSLog(@"PocketMode: playNewMailSoundStyle account: %@", account);
+    DLog(@"PocketMode: playNewMailSoundStyle account: %@", account);
     
-    [[PocketMode sharedManager] incomingMail];
+    CFNotificationCenterRef center = CFNotificationCenterGetDarwinNotifyCenter();
+    CFNotificationCenterPostNotification(center, CFSTR("be.dawson.pocketmode.incomingMail"), NULL, NULL, TRUE);
     
     CHSuper(2, MFSoundController, playNewMailSoundStyle, arg1, forAccount, account);
 }
@@ -19,7 +21,7 @@ CHOptimizedClassMethod(2, self, void, MFSoundController, playNewMailSoundStyle, 
 CHDeclareClass(CKMessageAlertItem);
 
 CHOptimizedClassMethod(0, self, void, CKMessageAlertItem, playMessageReceived) {
-    NSLog(@"PocketMode: CKMessageAlertItem  +playMessageReceived");
+    DLog(@"PocketMode: CKMessageAlertItem  +playMessageReceived");
     
     CHSuper(0, CKMessageAlertItem, playMessageReceived);
 }
@@ -69,7 +71,7 @@ CHOptimizedMethod(0, self, void, MPIncomingPhoneCallController, stopRingingOrVib
 CHDeclareClass(SBBulletinSoundController);
 
 CHOptimizedMethod(0, self, void, SBBulletinSoundController, killSounds) {
-    NSLog(@"PocketMode: Killing ALL sounds");
+    DLog(@"PocketMode: Killing ALL sounds");
     
     [[PocketMode sharedManager] stopAlertTone];
     
@@ -77,7 +79,7 @@ CHOptimizedMethod(0, self, void, SBBulletinSoundController, killSounds) {
 }
 
 CHOptimizedMethod(1, self, void, SBBulletinSoundController, killSoundForBulletin, id, bulletin) {
-    NSLog(@"PocketMode: Killing sounds for bulletin: %@", bulletin);
+    DLog(@"PocketMode: Killing sounds for bulletin: %@", bulletin);
     
     [[PocketMode sharedManager] stopAlertTone];
     
@@ -85,7 +87,7 @@ CHOptimizedMethod(1, self, void, SBBulletinSoundController, killSoundForBulletin
 }
 
 CHOptimizedMethod(1, self, BOOL, SBBulletinSoundController, playSoundForBulletin, id, bulletin) {
-    NSLog(@"PocketMode: Playing sound for bulletin: %@", bulletin);
+    DLog(@"PocketMode: Playing sound for bulletin: %@", bulletin);
     
     [[PocketMode sharedManager] incomingBulletin:bulletin];
     
@@ -118,17 +120,23 @@ CHOptimizedMethod(1, self, Class, SBPluginManager, loadPluginBundle, NSBundle *,
 
 CHConstructor {
     @autoreleasepool {
-        CHLoadLateClass(SBPluginManager);
-        CHHook(1, SBPluginManager, loadPluginBundle);
-        
-        CHLoadLateClass(SBBulletinSoundController);
-        CHHook(0, SBBulletinSoundController, killSounds);
-        CHHook(1, SBBulletinSoundController, killSoundForBulletin);
-        CHHook(1, SBBulletinSoundController, playSoundForBulletin);
-        
-        CHLoadLateClass(MFSoundController);
-        CHHook(2, MFSoundController, playNewMailSoundStyle, forAccount);
-    
-        [PocketMode sharedManager];
+        if([[[NSBundle mainBundle] bundleIdentifier] isEqualToString:@"com.apple.springboard"]) {
+            NSLog(@"PocketMode: Initializing SpringBoard hooks...");
+            
+            CHLoadLateClass(SBPluginManager);
+            CHHook(1, SBPluginManager, loadPluginBundle);
+            
+            CHLoadLateClass(SBBulletinSoundController);
+            CHHook(0, SBBulletinSoundController, killSounds);
+            CHHook(1, SBBulletinSoundController, killSoundForBulletin);
+            CHHook(1, SBBulletinSoundController, playSoundForBulletin);
+            
+            [PocketMode sharedManager];
+        } else if([[[NSBundle mainBundle] bundleIdentifier] isEqualToString:@"com.apple.mobilemail"]) {
+            NSLog(@"PocketMode: Initializing MobileMail hooks...");
+            
+            CHLoadLateClass(MFSoundController);
+            CHHook(2, MFSoundController, playNewMailSoundStyle, forAccount);
+        }
     }
 }
