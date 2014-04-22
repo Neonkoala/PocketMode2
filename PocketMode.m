@@ -586,7 +586,7 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
 - (void)incomingBulletin:(BBBulletin *)bulletin {
     DLog(@"PocketMode: Incoming bulletin sectionID: %@", bulletin.sectionID);
     
-    if(!self.alsConfigured || self.overrideInProgress) {
+    if(!self.alsConfigured || self.overrideInProgress || !self.globalEnabled) {
         return;
     }
     
@@ -606,7 +606,7 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
 }
 
 - (void)incomingMail {
-    if(self.alsConfigured && !self.overrideInProgress && self.notificationsEnabled && self.notificationsMailEnabled) {
+    if(self.alsConfigured && !self.overrideInProgress && self.globalEnabled && self.notificationsEnabled && self.notificationsMailEnabled) {
         DLog(@"PocketMode: Incoming mail...");
     } else {
         DLog(@"PocketMode: Ignoring incoming mail.");
@@ -617,7 +617,7 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
 }
 
 - (void)incomingFaceTimeCall:(id)chat {
-    if(self.alsConfigured && !self.overrideInProgress && self.phoneCallEnabled && self.phoneCallFacetimeEnabled) {
+    if(self.alsConfigured && !self.overrideInProgress && self.globalEnabled && self.phoneCallEnabled && self.phoneCallFacetimeEnabled) {
         DLog(@"PocketMode: Incoming FaceTime call... Current date: %@ ALS staleness: %@ Lux: %ld", [NSDate date], self.lastReadingDate, (long)self.lux);
     } else {
         DLog(@"PocketMode: Incoming FaceTime call... Not overriding.");
@@ -628,7 +628,7 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
 }
 
 - (void)incomingPhoneCall:(id)call {
-    if(self.alsConfigured && !self.overrideInProgress && self.phoneCallEnabled) {
+    if(self.alsConfigured && !self.overrideInProgress && self.globalEnabled && self.phoneCallEnabled) {
         DLog(@"PocketMode: Incoming phone call... Current date: %@ ALS staleness: %@ Lux: %ld", [NSDate date], self.lastReadingDate, (long)self.lux);
     } else {
         DLog(@"PocketMode: Incoming phone call... Not overriding.");
