@@ -1,5 +1,5 @@
-Package: be.dawson.PocketMode
-Name: PocketMode
+Package: be.dawson.PocketMode2
+Name: PocketMode 2
 Depends: mobilesubstrate, preferenceloader, applist, firmware (>= 7.0)
 Version: 2.0.0
 Architecture: iphoneos-arm

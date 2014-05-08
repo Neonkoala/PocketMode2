@@ -281,26 +281,36 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
     
     if(CFArrayGetCount(matchingsrvs) == 0) {
         self.alsConfigured = NO;
+        
         NSLog(@"PocketMode: Failed to configure ALS");
-        return;
+    } else {
+        // Configure the service
+        IOHIDServiceClientRef alssc = (IOHIDServiceClientRef)CFArrayGetValueAtIndex(matchingsrvs, 0);
+        
+        int desiredInterval = 500000;
+        CFNumberRef interval = CFNumberCreate(CFAllocatorGetDefault(), kCFNumberIntType, &desiredInterval);
+        IOHIDServiceClientSetProperty(alssc,CFSTR("ReportInterval"),interval);
+        
+        // Set ALS callback
+        IOHIDEventSystemClientScheduleWithRunLoop(s_hidSysC, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
+        IOHIDEventSystemClientRegisterEventCallback(s_hidSysC, handleALSEvent, NULL, NULL);
+        
+        DLog(@"PocketMode: Successfully configured ALS");
+        
+        CFRelease(interval);
     }
     
-    // Configure the service
-    IOHIDServiceClientRef alssc = (IOHIDServiceClientRef)CFArrayGetValueAtIndex(matchingsrvs, 0);
-    
-    int desiredInterval = 500000;
-    CFNumberRef interval = CFNumberCreate(CFAllocatorGetDefault(), kCFNumberIntType, &desiredInterval);
-    IOHIDServiceClientSetProperty(alssc,CFSTR("ReportInterval"),interval);
-    
-    // Set ALS callback
-    IOHIDEventSystemClientScheduleWithRunLoop(s_hidSysC, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
-    IOHIDEventSystemClientRegisterEventCallback(s_hidSysC, handleALSEvent, NULL, NULL);
-    
-    DLog(@"PocketMode: Successfully configured ALS");
+    CFRelease(matchingsrvs);
+    CFRelease(matchInfo);
+    CFRelease(mVals[0]);
+    CFRelease(mVals[1]);
+    CFRelease(mKeys[0]);
+    CFRelease(mKeys[1]);
 }
 
 - (void)restoreALS {
     IOHIDEventSystemClientUnscheduleWithRunLoop(s_hidSysC, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
+    IOHIDEventSystemClientUnregisterEventCallback(s_hidSysC);
 }
 
 - (void)updateLux:(NSInteger)updatedLux {
