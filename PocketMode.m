@@ -16,6 +16,7 @@
 #import <objc/runtime.h>
 #import <notify.h>
 
+#pragma mark - C/C++ and Callbacks
 
 #if defined __cplusplus
 extern "C" {
@@ -39,7 +40,9 @@ void handleALSEvent(void* target, void* refcon, IOHIDEventQueueRef queue, IOHIDE
 		
 		DLog(@"PocketMode: lux now %ld", (long)lux);
         
-        [[PocketMode sharedManager] updateLux:lux];
+        @autoreleasepool {
+            [[PocketMode sharedManager] updateLux:lux];
+        }
     }
 }
 
@@ -52,6 +55,16 @@ void preferenceNotificationCallback(CFNotificationCenterRef center, void *observ
     DLog(@"PocketMode: Preferences changed notification callback...");
     [[PocketMode sharedManager] updatePreferences];
 }
+
+#pragma mark - Class
+
+typedef NS_ENUM(NSInteger, PMHandleType) {
+    PMHandleTypeNone = 0,
+    PMHandleTypeCall,
+    PMHandleTypeMail,
+    PMHandleTypeMessage,
+    PMHandleTypeNotification
+};
 
 NSString * const PMMobileMailIdentifier = @"com.apple.mobilemail";
 NSString * const PMSMSIdentifier = @"com.apple.MobileSMS";
@@ -90,10 +103,10 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
 @property (nonatomic, assign) BOOL wasMuted;
 @property (nonatomic, assign) float regularVolume;
 @property (nonatomic, assign) NSInteger lux;
+@property (nonatomic, assign) PMHandleType waitingHandleType;
 @property (nonatomic, strong) NSDate *lastReadingDate;
 @property (nonatomic, strong) NSTimer *gradualVolumeTimer;
 @property (nonatomic, strong) NSTimer *soundMonitorTimer;
-@property (nonatomic, strong) BBSound *activeSound;
 
 // Settings - General
 
@@ -140,9 +153,9 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
         _alsConfigured = NO;
         _overrideInProgress = NO;
         _wasMuted = NO;
+        _waitingHandleType = PMHandleTypeNone;
         
         [self loadPreferences];
-        [self configureALS];
     }
     return self;
 }
@@ -283,11 +296,13 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
         self.alsConfigured = NO;
         
         NSLog(@"PocketMode: Failed to configure ALS");
+        
+        self.waitingHandleType = PMHandleTypeNone; // Reset
     } else {
         // Configure the service
         IOHIDServiceClientRef alssc = (IOHIDServiceClientRef)CFArrayGetValueAtIndex(matchingsrvs, 0);
         
-        int desiredInterval = 500000;
+        int desiredInterval = 50000;
         CFNumberRef interval = CFNumberCreate(CFAllocatorGetDefault(), kCFNumberIntType, &desiredInterval);
         IOHIDServiceClientSetProperty(alssc,CFSTR("ReportInterval"),interval);
         
@@ -306,16 +321,51 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
     CFRelease(mVals[1]);
     CFRelease(mKeys[0]);
     CFRelease(mKeys[1]);
+    
+    CFRunLoopRun();
 }
 
 - (void)restoreALS {
+    DLog(@"PocketMode: Restoring ALS config...");
+    
     IOHIDEventSystemClientUnscheduleWithRunLoop(s_hidSysC, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
     IOHIDEventSystemClientUnregisterEventCallback(s_hidSysC);
+    
+    self.alsConfigured = NO;
+    
+    DLog(@"PocketMode: ALS restored!");
 }
 
 - (void)updateLux:(NSInteger)updatedLux {
     self.lux = updatedLux;
     self.lastReadingDate = [NSDate date];
+    
+    switch (self.waitingHandleType) {
+        case PMHandleTypeCall:
+            self.waitingHandleType = PMHandleTypeNone;
+            [self handleCall];
+            break;
+            
+        case PMHandleTypeMail:
+            self.waitingHandleType = PMHandleTypeNone;
+            [self handleMail];
+            break;
+            
+        case PMHandleTypeMessage:
+            self.waitingHandleType = PMHandleTypeNone;
+            [self handleMessage];
+            break;
+            
+        case PMHandleTypeNotification:
+            self.waitingHandleType = PMHandleTypeNone;
+            [self handleNotification];
+            break;
+            
+        default:
+            break;
+    }
+    
+    CFRunLoopStop(CFRunLoopGetCurrent());
     
     if(self.overrideInProgress) {
         if(self.lux > self.luxThreshold) {
@@ -378,6 +428,7 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
     if(self.overrideInProgress) {
         DLog(@"PocketMode: Stop alert tone");
         [self restoreRingerState];
+        [self restoreALS];
     }
 }
 
@@ -386,6 +437,7 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
         DLog(@"PocketMode: Stop ringing");
         [self.gradualVolumeTimer invalidate];
         [self restoreRingerState];
+        [self restoreALS];
     }
 }
 
@@ -432,10 +484,6 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
     
     [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:NO forAudioCategory:@"Ringtone"];
     
-    float currentVolume;
-    [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
-    self.regularVolume = currentVolume;
-    
     if(self.lux <= self.luxThreshold) {
         DLog(@"PocketMode: It's dark and lonely in here...");
         
@@ -459,7 +507,7 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
         notify_cancel(token);
         notify_post("com.apple.springboard.ringerstate");
         
-        if(self.phoneCallMaxVolume > currentVolume) {
+        if(self.phoneCallMaxVolume > self.regularVolume) {
             if(self.phoneCallGradualVolume) {
                 [self setRingerVolumeGradually:self.phoneCallMaxVolume];
             } else {
@@ -473,10 +521,6 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
     DLog(@"PocketMode: Handling new mail...");
     
     [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:NO forAudioCategory:@"Ringtone"];
-    
-    float currentVolume;
-    [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
-    self.regularVolume = currentVolume;
     
     if(self.lux <= self.luxThreshold) {
         DLog(@"PocketMode: It's dark and lonely in here...");
@@ -501,7 +545,7 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
         notify_cancel(token);
         notify_post("com.apple.springboard.ringerstate");
         
-        if(self.notificationsVolume > currentVolume) {
+        if(self.notificationsVolume > self.regularVolume) {
             [self setRingerVolume:self.notificationsVolume];
         }
         
@@ -509,14 +553,10 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
     }
 }
 
-- (void)handleMessage:(BBBulletin *)bulletin {
-    DLog(@"PocketMode: Handling message: %@", bulletin);
+- (void)handleMessage {
+    DLog(@"PocketMode: Handling message...");
     
     [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:NO forAudioCategory:@"Ringtone"];
-    
-    float currentVolume;
-    [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
-    self.regularVolume = currentVolume;
     
     if(self.lux <= self.luxThreshold) {
         DLog(@"PocketMode: It's dark and lonely in here...");
@@ -541,23 +581,18 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
         notify_cancel(token);
         notify_post("com.apple.springboard.ringerstate");
         
-        if(self.messagesVolume > currentVolume) {
+        if(self.messagesVolume > self.regularVolume) {
             [self setRingerVolume:self.messagesVolume];
         }
         
-        self.activeSound = bulletin.sound;
         self.soundMonitorTimer = [NSTimer scheduledTimerWithTimeInterval:7.0 target:self selector:@selector(checkSound:) userInfo:nil repeats:NO];
     }
 }
 
-- (void)handleNotification:(BBBulletin *)bulletin {
+- (void)handleNotification {
     DLog(@"PocketMode: Handling notification...");
     
     [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:NO forAudioCategory:@"Ringtone"];
-    
-    float currentVolume;
-    [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
-    self.regularVolume = currentVolume;
     
     if(self.lux <= self.luxThreshold) {
         DLog(@"PocketMode: It's dark and lonely in here...");
@@ -582,11 +617,10 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
         notify_cancel(token);
         notify_post("com.apple.springboard.ringerstate");
         
-        if(self.notificationsVolume > currentVolume) {
+        if(self.notificationsVolume > self.regularVolume) {
             [self setRingerVolume:self.notificationsVolume];
         }
         
-        self.activeSound = bulletin.sound;
         self.soundMonitorTimer = [NSTimer scheduledTimerWithTimeInterval:7.0 target:self selector:@selector(checkSound:) userInfo:nil repeats:NO];
     }
 }
@@ -596,7 +630,7 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
 - (void)incomingBulletin:(BBBulletin *)bulletin {
     DLog(@"PocketMode: Incoming bulletin sectionID: %@", bulletin.sectionID);
     
-    if(!self.alsConfigured || self.overrideInProgress || !self.globalEnabled) {
+    if(self.overrideInProgress || !self.globalEnabled || (self.waitingHandleType != PMHandleTypeNone)) {
         return;
     }
     
@@ -604,48 +638,74 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
         if(self.messagesEnabled) {
             DLog(@"PocketMode: Incoming SMS triggered: %@", bulletin.sectionID);
             
-            [self handleMessage:bulletin];
+            float currentVolume;
+            [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
+            self.regularVolume = currentVolume;
+            
+            self.waitingHandleType = PMHandleTypeMessage;
+            [self configureALS];
         }
     } else if(![bulletin.sectionID isEqualToString:PMMobileMailIdentifier]) {
         for(NSString *appIdentifier in self.notificationsAppIdentifiers) {
             if([appIdentifier isEqualToString:bulletin.sectionID]) {
-                [self handleNotification:bulletin];
+                float currentVolume;
+                [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
+                self.regularVolume = currentVolume;
+                
+                self.waitingHandleType = PMHandleTypeNotification;
+                [self configureALS];
+                break;
             }
         }
     }
 }
 
 - (void)incomingMail {
-    if(self.alsConfigured && !self.overrideInProgress && self.globalEnabled && self.notificationsEnabled && self.notificationsMailEnabled) {
+    if(!self.overrideInProgress && self.globalEnabled && self.notificationsEnabled && self.notificationsMailEnabled && (self.waitingHandleType == PMHandleTypeNone)) {
         DLog(@"PocketMode: Incoming mail...");
     } else {
         DLog(@"PocketMode: Ignoring incoming mail.");
         return;
     }
     
-    [self handleMail];
+    float currentVolume;
+    [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
+    self.regularVolume = currentVolume;
+    
+    self.waitingHandleType = PMHandleTypeMail;
+    [self configureALS];
 }
 
 - (void)incomingFaceTimeCall:(id)chat {
-    if(self.alsConfigured && !self.overrideInProgress && self.globalEnabled && self.phoneCallEnabled && self.phoneCallFacetimeEnabled) {
+    if(!self.overrideInProgress && self.globalEnabled && self.phoneCallEnabled && self.phoneCallFacetimeEnabled && (self.waitingHandleType == PMHandleTypeNone)) {
         DLog(@"PocketMode: Incoming FaceTime call... Current date: %@ ALS staleness: %@ Lux: %ld", [NSDate date], self.lastReadingDate, (long)self.lux);
     } else {
         DLog(@"PocketMode: Incoming FaceTime call... Not overriding.");
         return;
     }
     
-    [self handleCall];
+    float currentVolume;
+    [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
+    self.regularVolume = currentVolume;
+    
+    self.waitingHandleType = PMHandleTypeCall;
+    [self configureALS];
 }
 
 - (void)incomingPhoneCall:(id)call {
-    if(self.alsConfigured && !self.overrideInProgress && self.globalEnabled && self.phoneCallEnabled) {
+    if(!self.overrideInProgress && self.globalEnabled && self.phoneCallEnabled && (self.waitingHandleType == PMHandleTypeNone)) {
         DLog(@"PocketMode: Incoming phone call... Current date: %@ ALS staleness: %@ Lux: %ld", [NSDate date], self.lastReadingDate, (long)self.lux);
     } else {
         DLog(@"PocketMode: Incoming phone call... Not overriding.");
         return;
     }
     
-    [self handleCall];
+    float currentVolume;
+    [[AVSystemController sharedAVSystemController] getVolume:&currentVolume forCategory:@"Ringtone"];
+    self.regularVolume = currentVolume;
+    
+    self.waitingHandleType = PMHandleTypeCall;
+    [self configureALS];
 }
 
 @end
