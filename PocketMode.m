@@ -322,7 +322,11 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
     CFRelease(mKeys[0]);
     CFRelease(mKeys[1]);
     
-    CFRunLoopRun();
+    DLog(@"PocketMode: Entering run loop...");
+    
+    CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.5, NO); // 0.5 seconds failover if ALS fails
+    
+    DLog(@"PocketMode: Run loop finished");
 }
 
 - (void)restoreALS {
