@@ -17,4 +17,5 @@ after-install::
 	install.exec "killall -9 SpringBoard"
 
 SUBPROJECTS += pocketmodeprefs
+SUBPROJECTS += pocketmodeswitch
 include $(THEOS_MAKE_PATH)/aggregate.mk

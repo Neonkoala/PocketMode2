@@ -2,6 +2,33 @@
 <Workspace
    version = "1.0">
    <Group
+      location = "group:pocketmodeswitch"
+      name = "Switch">
+      <FileRef
+         location = "group:FSSwitchDataSource.h">
+      </FileRef>
+      <FileRef
+         location = "group:FSSwitchPanel.h">
+      </FileRef>
+      <FileRef
+         location = "group:FSSwitchState.h">
+      </FileRef>
+      <FileRef
+         location = "group:Makefile">
+      </FileRef>
+      <Group
+         location = "group:Resources"
+         name = "Resources">
+         <FileRef
+            location = "group:Info.plist">
+         </FileRef>
+      </Group>
+      <FileRef
+         location = "group:Switch.x"
+         assignedFileDataType = "public.objective-c-source">
+      </FileRef>
+   </Group>
+   <Group
       location = "container:"
       name = "Preferences">
       <FileRef
