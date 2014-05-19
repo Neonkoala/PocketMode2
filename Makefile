@@ -9,7 +9,7 @@ TWEAK_NAME = PocketMode
 PocketMode_FILES = Tweak.xm PocketMode.m
 PocketMode_FRAMEWORKS = IOKit UIKit
 PocketMode_PRIVATE_FRAMEWORKS = BulletinBoard Celestial
-PocketMode_CFLAGS = -DDEBUG
+#PocketMode_CFLAGS = -DDEBUG
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 

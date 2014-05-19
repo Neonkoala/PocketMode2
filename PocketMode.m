@@ -332,6 +332,18 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
 - (void)restoreALS {
     DLog(@"PocketMode: Restoring ALS config...");
     
+    CFArrayRef matchingsrvs = IOHIDEventSystemClientCopyServices(s_hidSysC, 0);
+    
+    if(CFArrayGetCount(matchingsrvs) > 0) {
+        // Configure the service
+        IOHIDServiceClientRef alssc = (IOHIDServiceClientRef)CFArrayGetValueAtIndex(matchingsrvs, 0);
+    
+        int desiredInterval = 0;
+        CFNumberRef interval = CFNumberCreate(CFAllocatorGetDefault(), kCFNumberIntType, &desiredInterval);
+        IOHIDServiceClientSetProperty(alssc,CFSTR("ReportInterval"),interval);
+        CFRelease(interval);
+    }
+    
     IOHIDEventSystemClientUnscheduleWithRunLoop(s_hidSysC, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
     IOHIDEventSystemClientUnregisterEventCallback(s_hidSysC);
     
@@ -375,6 +387,7 @@ NSString * const PMPreferenceLuxLevel = @"LuxLevel";
         if(self.lux > self.luxThreshold) {
             [self.gradualVolumeTimer invalidate];
             [self restoreRingerState];
+            [self restoreALS];
         }
     }
 }
