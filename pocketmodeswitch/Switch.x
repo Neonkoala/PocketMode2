@@ -43,8 +43,9 @@ NSString * const PMPreferenceGlobalEnabled = @"GlobalEnabled";
             return;
     }
     
-    NSMutableDictionary *preferences = [NSDictionary dictionaryWithContentsOfFile:PMPreferencesPath];
+    NSMutableDictionary *preferences = [NSMutableDictionary dictionaryWithContentsOfFile:PMPreferencesPath];
     [preferences setObject:@(enabled) forKey:PMPreferenceGlobalEnabled];
+    [preferences writeToFile:PMPreferencesPath atomically:YES];
     
     CFNotificationCenterRef center = CFNotificationCenterGetDarwinNotifyCenter();
     CFNotificationCenterPostNotification(center, CFSTR("be.dawson.pocketmode.prefsChanged"), NULL, NULL, TRUE);
