@@ -37,6 +37,20 @@
       <Group
          location = "group:pocketmodeprefs/Resources"
          name = "Resources">
+         <Group
+            location = "group:en.lproj"
+            name = "en.lproj">
+            <FileRef
+               location = "group:PocketModePrefs.strings">
+            </FileRef>
+         </Group>
+         <Group
+            location = "group:zh-Hant.lproj"
+            name = "zh-Hant.lproj">
+            <FileRef
+               location = "group:PocketModePrefs.strings">
+            </FileRef>
+         </Group>
          <FileRef
             location = "group:be.dawson.pocketmodeprefs.plist">
          </FileRef>

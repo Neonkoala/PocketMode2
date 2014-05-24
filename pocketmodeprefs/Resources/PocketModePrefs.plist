@@ -8,7 +8,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
-			<string>PocketMode</string>
+			<string>POCKETMODE</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -20,7 +20,7 @@
 			<key>key</key>
 			<string>GlobalEnabled</string>
 			<key>label</key>
-			<string>Enabled</string>
+			<string>GLOBAL_ENABLED</string>
 			<key>PostNotification</key>
 			<string>be.dawson.pocketmode.prefsChanged</string>
 		</dict>
@@ -30,13 +30,13 @@
 			<key>action</key>
 			<string>openUserGuide</string>
 			<key>label</key>
-			<string>User Guide</string>
+			<string>USER_GUIDE</string>
 		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
-			<string>Phone</string>
+			<string>PHONE</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -50,7 +50,7 @@
 			<key>key</key>
 			<string>PhoneCallEnabled</string>
 			<key>label</key>
-			<string>Enabled</string>
+			<string>PHONE_ENABLED</string>
 			<key>PostNotification</key>
 			<string>be.dawson.pocketmode.prefsChanged</string>
 		</dict>
@@ -84,7 +84,7 @@
 			<key>key</key>
 			<string>PhoneCallGradual</string>
 			<key>label</key>
-			<string>Gradual Volume Increase</string>
+			<string>PHONE_GRADUAL_VOLUME</string>
 			<key>PostNotification</key>
 			<string>be.dawson.pocketmode.prefsChanged</string>
 		</dict>
@@ -98,7 +98,7 @@
 			<key>key</key>
 			<string>PhoneCallOverrideMute</string>
 			<key>label</key>
-			<string>Override Mute</string>
+			<string>PHONE_OVERRIDE_MUTE</string>
 			<key>PostNotification</key>
 			<string>be.dawson.pocketmode.prefsChanged</string>
 		</dict>
@@ -112,7 +112,7 @@
 			<key>key</key>
 			<string>PhoneCallFacetimeEnabled</string>
 			<key>label</key>
-			<string>FaceTime</string>
+			<string>PHONE_FACETIME</string>
 			<key>PostNotification</key>
 			<string>be.dawson.pocketmode.prefsChanged</string>
 		</dict>
@@ -120,7 +120,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
-			<string>Messages</string>
+			<string>MESSAGES</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -134,7 +134,7 @@
 			<key>key</key>
 			<string>MessagesEnabled</string>
 			<key>label</key>
-			<string>Enabled</string>
+			<string>MESSAGES_ENABLED</string>
 			<key>PostNotification</key>
 			<string>be.dawson.pocketmode.prefsChanged</string>
 		</dict>
@@ -148,7 +148,7 @@
 			<key>key</key>
 			<string>MessagesOverrideMute</string>
 			<key>label</key>
-			<string>Override Mute</string>
+			<string>MESSAGES_OVERRIDE_MUTE</string>
 			<key>PostNotification</key>
 			<string>be.dawson.pocketmode.prefsChanged</string>
 		</dict>
@@ -176,7 +176,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
-			<string>Notifications</string>
+			<string>NOTIFICATIONS</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -188,7 +188,7 @@
 			<key>key</key>
 			<string>NotificationsEnabled</string>
 			<key>label</key>
-			<string>Enabled</string>
+			<string>NOTIFICATIONS_ENABLED</string>
 			<key>PostNotification</key>
 			<string>be.dawson.pocketmode.prefsChanged</string>
 		</dict>
@@ -200,7 +200,7 @@
 			<key>isController</key>
 			<true/>
 			<key>label</key>
-			<string>Applications</string>
+			<string>NOTIFICATIONS_APPLICATIONS</string>
 			<key>ALAllowsSelection</key>
 			<true/>
 			<key>ALChangeNotification</key>
@@ -247,7 +247,7 @@
 			<key>key</key>
 			<string>NotificationsOverrideMute</string>
 			<key>label</key>
-			<string>Override Mute</string>
+			<string>NOTIFICATIONS_OVERRIDE_MUTE</string>
 			<key>PostNotification</key>
 			<string>be.dawson.pocketmode.prefsChanged</string>
 		</dict>
@@ -277,15 +277,15 @@
 			<key>footerAlignment</key>
 			<integer>1</integer>
 			<key>footerText</key>
-			<string>Increase or decrease the light sensitivity to change at what lux value PocketMode activates. Lower values are darker.</string>
+			<string>ADV_LIGHT_FOOTER</string>
 			<key>label</key>
-			<string>Advanced</string>
+			<string>ADVANCED</string>
 		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSTitleValueCell</string>
 			<key>label</key>
-			<string>Light Sensitivity</string>
+			<string>ADV_LIGHT_SENSITIVITY</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -311,9 +311,9 @@
 			<key>footerAlignment</key>
 			<integer>1</integer>
 			<key>footerText</key>
-			<string>Copyright 2014 Nick Dawson</string>
+			<string>ABOUT_COPYRIGHT</string>
 			<key>label</key>
-			<string>About</string>
+			<string>ABOUT</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -321,7 +321,7 @@
 			<key>action</key>
 			<string>openTwitterLink</string>
 			<key>label</key>
-			<string>Follow @nidawson</string>
+			<string>ABOUT_TWITTER_FOLLOW</string>
 			<key>icon</key>
 			<string>twitter.png</string>
 		</dict>
@@ -329,7 +329,7 @@
 			<key>cell</key>
 			<string>PSTitleValueCell</string>
 			<key>label</key>
-			<string>Version 2.1</string>
+			<string>Version 2.1.1</string>
 		</dict>
 	</array>
 	<key>title</key>

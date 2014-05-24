@@ -13,6 +13,9 @@ PocketMode_PRIVATE_FRAMEWORKS = BulletinBoard Celestial
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
+after-stage::
+	find $(FW_STAGING_DIR) -iname '*.plist' -or -iname '*.strings' -exec plutil -convert binary1 {} \;
+
 after-install::
 	install.exec "killall -9 SpringBoard"
 

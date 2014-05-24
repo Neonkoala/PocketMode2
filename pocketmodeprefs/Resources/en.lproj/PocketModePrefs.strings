@@ -1,0 +1,35 @@
+/* 
+  Localizable.strings
+  
+
+  Created by Nick Dawson on 24/05/2014.
+
+*/
+
+"POCKETMODE" = "PocketMode";
+"GLOBAL_ENABLED" = "Enabled";
+"USER_GUIDE" = "User Guide";
+
+"PHONE" = "Phone";
+"PHONE_ENABLED" = "Enabled";
+"PHONE_GRADUAL_VOLUME" = "Gradual Volume Increase";
+"PHONE_OVERRIDE_MUTE" = "Override Mute";
+"PHONE_FACETIME" = "FaceTime";
+
+"MESSAGES" = "Messages";
+"MESSAGES_ENABLED" = "Enabled";
+"MESSAGES_OVERRIDE_MUTE" = "Override Mute";
+
+"NOTIFICATIONS" = "Notifications";
+"NOTIFICATIONS_ENABLED" = "Enabled";
+"NOTIFICATIONS_APPLICATIONS" = "Applications";
+"NOTIFICATIONS_OVERRIDE_MUTE" = "Override Mute";
+
+"ADVANCED" = "Advanced";
+"ADV_LIGHT_SENSITIVITY" = "Light Sensitivity";
+"ADV_LIGHT_FOOTER" = "Increase or decrease the light sensitivity to change at what lux value PocketMode activates. Lower values are darker.";
+
+"ABOUT" = "About";
+"ABOUT_TWITTER_FOLLOW" = "Follow @nidawson";
+"ABOUT_VERSION" = "Version 2.1.1";
+"ABOUT_COPYRIGHT" = "Copyright 2014 Nick Dawson";

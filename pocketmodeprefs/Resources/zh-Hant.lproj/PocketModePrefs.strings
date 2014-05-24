@@ -1,0 +1,34 @@
+/* 
+  Localizable.strings
+  
+
+  Created by Nick Dawson on 24/05/2014.
+
+*/
+
+"POCKETMODE" = "PocketMode";
+"GLOBAL_ENABLED" = "啟用";
+"USER_GUIDE" = "使用者指南";
+
+"PHONE" = "電話";
+"PHONE_ENABLED" = "啟用";
+"PHONE_GRADUAL_VOLUME" = "逐漸增大音量";
+"PHONE_OVERRIDE_MUTE" = "覆蓋靜音開關";
+"PHONE_FACETIME" = "FaceTime";
+
+"MESSAGES" = "訊息";
+"MESSAGES_ENABLED" = "啟用";
+"MESSAGES_OVERRIDE_MUTE" = "覆蓋靜音開關";
+
+"NOTIFICATIONS" = "通知";
+"NOTIFICATIONS_ENABLED" = "啟用";
+"NOTIFICATIONS_APPLICATIONS" = "應用程式";
+"NOTIFICATIONS_OVERRIDE_MUTE" = "覆蓋靜音開關";
+
+"ADVANCED" = "進階";
+"ADV_LIGHT_SENSITIVITY" = "感光度";
+"ADV_LIGHT_FOOTER" = "啟用PocketMode時，可調升或調降光感度來改變照度值。數值較低代表較暗。.";
+
+"ABOUT" = "關於";
+"ABOUT_TWITTER_FOLLOW" = "Follow @nidawson";
+"ABOUT_COPYRIGHT" = "Copyright 2014 Nick Dawson";
